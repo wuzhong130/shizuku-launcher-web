@@ -3,7 +3,6 @@ import { styled } from '@mui/material/styles';
 import Typography from '@mui/material/Typography';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
-import FormControl from '@mui/material/FormControl';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import InputLabel from '@mui/material/InputLabel';
@@ -23,6 +22,11 @@ import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
+import Radio from '@mui/material/Radio';
+import RadioGroup from '@mui/material/RadioGroup';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import FormControl from '@mui/material/FormControl';
+import FormLabel from '@mui/material/FormLabel';
 import Link from '@mui/material/Link';
 import Paper from '@mui/material/Paper';
 import ArrowForwardIosSharpIcon from '@mui/icons-material/ArrowForwardIosSharp';
@@ -30,7 +34,7 @@ import AWS from 'aws-sdk';
 import ServiceQuotas from "aws-sdk/clients/servicequotas";
 
 import "./App.css"
-import Shizuku from "./a6kr6-9mvku.webp"
+import Shizuku from "./title-shizuku.webp"
 
 const Accordion = styled((props) => (
   <MuiAccordion disableGutters elevation={0} square {...props} />
@@ -69,6 +73,8 @@ function App() {
   const [saki, setSaki] = useState("");
   const [fixedAki, setFixedAki] = useState("");
   const [fixedSaki, setFixedSaki] = useState("");
+  const [mode, setMode] = useState(1);
+  const [remote, setRemote] = useState("https://shizuku-launcher-backend.hidandelion.com");
   const [liRegion, setLiRegion] = useState("");
   const [system, setSystem] = useState("");
   const [type, setType] = useState("");
@@ -89,17 +95,17 @@ function App() {
       <Typography id="main-title" sx={{ m: 2 }} variant="h4">幻想世界の小店のAWS开机小助手</Typography>
       <Link sx={{ m: 2 }} underline="hover" variant="body2" href="https://github.com/hiDandelion/shizuku-launcher-web">访问项目仓库</Link>
       <div>
-        <img src={Shizuku} />
+        <img src={Shizuku} alt="title-shizuku"/>
       </div>
       <div>
-        <FormControl sx={{ m: 1, minWidth: 600 }} variant="standard">
+        <FormControl sx={{ m: 1, width: 0.9, maxWidth: 600 }} variant="standard">
           <TextField label="Access Key ID" variant="outlined" size="small" onChange={(e) => {
             setAki(e.target.value);
           }} />
         </FormControl>
       </div>
       <div>
-        <FormControl sx={{ m: 1, minWidth: 600 }}>
+        <FormControl sx={{ m: 1, width: 0.9, maxWidth: 600 }}>
           <TextField label="Secret Access Key ID" variant="outlined" size="small" onChange={(e) => {
             setSaki(e.target.value);
           }} />
@@ -121,9 +127,45 @@ function App() {
               setDialogDescription("您的凭证已保存，请进行下一步操作");
               setInstances([]);
             }
-          }}>保存</Button>
+          }}>保存凭证</Button>
         </FormControl>
       </div>
+      <div>
+        <FormControl sx={{ m: 1 }}>
+          <FormLabel id="mode-radio-buttons-group-label">运行模式</FormLabel>
+          <RadioGroup
+            row
+            aria-labelledby="mode-radio-buttons-group-label"
+            defaultValue={1}
+            onChange={e => {
+              setMode(parseInt(e.currentTarget.value))
+            }}
+          >
+            <FormControlLabel value={1} control={<Radio />} label="本地" />
+            <FormControlLabel value={2} control={<Radio />} label="远端" />
+          </RadioGroup>
+        </FormControl>
+      </div>
+      {mode === 1 ? (
+        <div><Typography id="main-title" sx={{ m: 2 }} variant="body">本地模式：所有操作均在本地完成，凭证仅发送至AWS，更安全。</Typography></div>
+      ) : (
+        <>
+          <div>
+            <FormControl sx={{ m: 1, width: 0.9, maxWidth: 600 }}>
+              <TextField label="远端地址（可选）" variant="outlined" size="small" onChange={(e) => {
+                setRemote(e.target.value);
+                if (remote === "") {
+                  setRemote("https://shizuku-launcher-backend.hidandelion.com")
+                }
+              }} />
+            </FormControl>
+          </div>
+          <div><Typography id="main-title" sx={{ m: 2 }} variant="body">远端模式：如果您的本地IP已遭滥用，使用远端模式可将凭证发送至远端服务器进行操作，匿名性更高。</Typography></div>
+          <div><Typography id="main-title" sx={{ m: 2 }} variant="body">您可以自行搭建远端服务器，具体方法请访问<Link underline="hover" href="https://github.com/hiDandelion/shizuku-launcher-backend">后端项目仓库</Link>，如不填写远端地址将使用默认托管的服务器。</Typography></div>
+        </>
+      )
+      }
+
       <Accordion>
         <AccordionSummary
           expandIcon={<ExpandMoreIcon />}
@@ -165,7 +207,7 @@ function App() {
             </FormControl>
             <div>
               <FormControl sx={{ m: 1, minWidth: 150 }}>
-                <TextField label="密码" variant="outlined" size="small" onChange={(e) => {
+                <TextField label="密码" type="password" variant="outlined" size="small" onChange={(e) => {
                   setPassword(e.target.value);
                 }} />
               </FormControl>
@@ -207,192 +249,214 @@ function App() {
                     setIsLaunchingInstance(false);
                   }
                   else {
-                    AWS.config = new AWS.Config();
-                    AWS.config.update(
-                      {
-                        accessKeyId: fixedAki,
-                        secretAccessKey: fixedSaki,
-                        region: liRegion
-                      }
-                    );
-                    var ec2 = new AWS.EC2();
-                    var imageName = ''
-                    var imageOwner = ''
-                    var imageId = ''
-                    if (system === 'Debian 10') {
-                      imageName = 'debian-10-amd64-2022*'
-                      imageOwner = '136693071363'
-                    }
-                    if (system === 'Debian 11') {
-                      imageName = 'debian-11-amd64-2022*'
-                      imageOwner = '136693071363'
-                    }
-                    if (system === 'Ubuntu 20.04') {
-                      imageName = 'ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-2022*'
-                      imageOwner = '099720109477'
-                    }
-                    if (system === 'Ubuntu 22.04') {
-                      imageName = 'ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-2022*'
-                      imageOwner = '099720109477'
-                    }
-                    if (system === 'Arch Linux') {
-                      imageName = '*'
-                      imageOwner = '647457786197'
-                    }
-                    var imageParams = {
-                      Filters: [
+                    if (mode === 1) {
+                      AWS.config = new AWS.Config();
+                      AWS.config.update(
                         {
-                          Name: 'name',
-                          Values: [
-                            imageName
-                          ]
-                        },
-                        {
-                          Name: 'architecture',
-                          Values: [
-                            'x86_64'
-                          ]
+                          accessKeyId: fixedAki,
+                          secretAccessKey: fixedSaki,
+                          region: liRegion
                         }
-                      ],
-                      Owners: [
-                        imageOwner
-                      ]
-                    }
-                    ec2.describeImages(imageParams, function (err, data) {
-                      if (err) {
-                        console.log(err);
-                        setDialogOpen(true);
-                        setDialogTitle("启动实例失败");
-                        setDialogDescription("查找操作系统镜像时发生错误，请再试一次或联系支持");
-                        setIsLaunchingInstance(false);
+                      );
+                      var ec2 = new AWS.EC2();
+                      var imageName = ''
+                      var imageOwner = ''
+                      var imageId = ''
+                      if (system === 'Debian 10') {
+                        imageName = 'debian-10-amd64-2022*'
+                        imageOwner = '136693071363'
                       }
-                      else {
-                        console.log(data)
-                        imageId = data.Images[0].ImageId
-                        var keyName = String(Date.now())
-                        var keyParams = {
-                          KeyName: keyName
-                        };
-                        ec2.createKeyPair(keyParams, function (err, data) {
-                          if (err) {
-                            console.log(err);
+                      if (system === 'Debian 11') {
+                        imageName = 'debian-11-amd64-2022*'
+                        imageOwner = '136693071363'
+                      }
+                      if (system === 'Ubuntu 20.04') {
+                        imageName = 'ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-2022*'
+                        imageOwner = '099720109477'
+                      }
+                      if (system === 'Ubuntu 22.04') {
+                        imageName = 'ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-2022*'
+                        imageOwner = '099720109477'
+                      }
+                      if (system === 'Arch Linux') {
+                        imageName = '*'
+                        imageOwner = '647457786197'
+                      }
+                      var imageParams = {
+                        Filters: [
+                          {
+                            Name: 'name',
+                            Values: [
+                              imageName
+                            ]
+                          },
+                          {
+                            Name: 'architecture',
+                            Values: [
+                              'x86_64'
+                            ]
+                          }
+                        ],
+                        Owners: [
+                          imageOwner
+                        ]
+                      }
+                      ec2.describeImages(imageParams, function (err, data) {
+                        if (err) {
+                          setDialogOpen(true);
+                          setDialogTitle("启动实例失败");
+                          setDialogDescription("查找操作系统镜像时发生错误，请再试一次或联系支持");
+                          setIsLaunchingInstance(false);
+                        }
+                        else {
+                          imageId = data.Images[0].ImageId
+                          var keyName = String(Date.now())
+                          var keyParams = {
+                            KeyName: keyName
+                          };
+                          ec2.createKeyPair(keyParams, function (err, data) {
+                            if (err) {
+                              setDialogOpen(true);
+                              setDialogTitle("启动实例失败");
+                              setDialogDescription("创建密钥时发生错误，请再试一次或联系支持");
+                              setIsLaunchingInstance(false);
+                            } else {
+                              var sgParams = {
+                                Description: keyName,
+                                GroupName: keyName
+                              }
+                              ec2.createSecurityGroup(sgParams, function (err, data) {
+                                if (err) {
+                                  setDialogOpen(true);
+                                  setDialogTitle("启动实例失败");
+                                  setDialogDescription("创建安全组时发生错误，请再试一次或联系支持");
+                                  setIsLaunchingInstance(false);
+                                } else {
+                                  var groupId = data.GroupId
+                                  var asgParams = {
+                                    GroupId: groupId,
+                                    IpPermissions: [
+                                      {
+                                        FromPort: 0,
+                                        IpProtocol: "tcp",
+                                        IpRanges: [
+                                          {
+                                            CidrIp: "0.0.0.0/0",
+                                            Description: "All TCP"
+                                          }
+                                        ],
+                                        ToPort: 65535
+                                      },
+                                      {
+                                        FromPort: 0,
+                                        IpProtocol: "udp",
+                                        IpRanges: [
+                                          {
+                                            CidrIp: "0.0.0.0/0",
+                                            Description: "All UDP"
+                                          }
+                                        ],
+                                        ToPort: 65535
+                                      },
+                                      {
+                                        FromPort: -1,
+                                        IpProtocol: "icmp",
+                                        IpRanges: [
+                                          {
+                                            CidrIp: "0.0.0.0/0",
+                                            Description: "All ICMP"
+                                          }
+                                        ],
+                                        ToPort: -1
+                                      },
+                                      {
+                                        FromPort: -1,
+                                        IpProtocol: "icmpv6",
+                                        IpRanges: [
+                                          {
+                                            CidrIp: "0.0.0.0/0",
+                                            Description: "All ICMPV6"
+                                          }
+                                        ],
+                                        ToPort: -1
+                                      }
+                                    ]
+                                  };
+                                  ec2.authorizeSecurityGroupIngress(asgParams, function (err, data) {
+                                    if (err) {
+                                      setDialogOpen(true);
+                                      setDialogTitle("启动实例失败");
+                                      setDialogDescription("修改安全组策略时发生错误，请再试一次或联系支持");
+                                      setIsLaunchingInstance(false);
+                                    } else {
+                                      var userDataRaw = "#!/bin/bash\necho root:" + password + "|sudo chpasswd root\nsudo rm -rf /etc/ssh/sshd_config\nsudo tee /etc/ssh/sshd_config <<EOF\nClientAliveInterval 120\nSubsystem       sftp    /usr/lib/openssh/sftp-server\nX11Forwarding yes\nPrintMotd no\nChallengeResponseAuthentication no\nPasswordAuthentication yes\nPermitRootLogin yes\nUsePAM yes\nAcceptEnv LANG LC_*\nEOF\nsudo systemctl restart sshd\n"
+                                      var userData = btoa(userDataRaw)
+                                      var instanceParams = {
+                                        ImageId: imageId,
+                                        InstanceType: type,
+                                        KeyName: keyName,
+                                        MinCount: 1,
+                                        MaxCount: 1,
+                                        SecurityGroupIds: [
+                                          groupId
+                                        ],
+                                        UserData: userData
+                                      };
+                                      ec2.runInstances(instanceParams, function (err, data) {
+                                        if (err) {
+                                          setDialogOpen(true);
+                                          setDialogTitle("启动实例失败");
+                                          setDialogDescription("启动实例时发生错误，请再试一次或联系支持");
+                                          setIsLaunchingInstance(false);
+                                        } else {
+                                          setDialogOpen(true);
+                                          setDialogTitle("启动实例成功");
+                                          setDialogDescription("您的新实例id为" + data.Instances[0].InstanceId + "，请30秒后通过查询实例详细信息获得公网ip，在此期间您可以开启另一个实例或进行其他操作");
+                                          setIsLaunchingInstance(false);
+                                          setInstances([]);
+                                        }
+                                      });
+                                    }
+                                  });
+                                }
+                              });
+                            }
+                          });
+                        }
+                      });
+                    }
+                    else if (mode === 2) {
+                      fetch(remote + '/aws-launch-instance', {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                          aki: fixedAki,
+                          saki: fixedSaki,
+                          region: liRegion,
+                          system: system,
+                          type: type,
+                          password: password
+                        })
+                      })
+                        .then(async (response) => {
+                          var body = await response.json();
+                          if (response.ok) {
+                            setDialogOpen(true);
+                            setDialogTitle("启动实例成功");
+                            setDialogDescription("您的新实例id为" + body.instanceId + "，请30秒后通过查询实例详细信息获得公网ip，在此期间您可以开启另一个实例或进行其他操作");
+                            setIsLaunchingInstance(false);
+                            setInstances([]);
+                          }
+                          else {
                             setDialogOpen(true);
                             setDialogTitle("启动实例失败");
-                            setDialogDescription("创建密钥时发生错误，请再试一次或联系支持");
+                            setDialogDescription("启动实例时发生错误，请再试一次或联系支持");
                             setIsLaunchingInstance(false);
-                          } else {
-                            var sgParams = {
-                              Description: keyName,
-                              GroupName: keyName
-                            }
-                            ec2.createSecurityGroup(sgParams, function (err, data) {
-                              if (err) {
-                                console.log(err);
-                                setDialogOpen(true);
-                                setDialogTitle("启动实例失败");
-                                setDialogDescription("创建安全组时发生错误，请再试一次或联系支持");
-                                setIsLaunchingInstance(false);
-                              } else {
-                                console.log(data);
-                                var groupId = data.GroupId
-                                var asgParams = {
-                                  GroupId: groupId,
-                                  IpPermissions: [
-                                    {
-                                      FromPort: 0,
-                                      IpProtocol: "tcp",
-                                      IpRanges: [
-                                        {
-                                          CidrIp: "0.0.0.0/0",
-                                          Description: "All TCP"
-                                        }
-                                      ],
-                                      ToPort: 65535
-                                    },
-                                    {
-                                      FromPort: 0,
-                                      IpProtocol: "udp",
-                                      IpRanges: [
-                                        {
-                                          CidrIp: "0.0.0.0/0",
-                                          Description: "All UDP"
-                                        }
-                                      ],
-                                      ToPort: 65535
-                                    },
-                                    {
-                                      FromPort: -1,
-                                      IpProtocol: "icmp",
-                                      IpRanges: [
-                                        {
-                                          CidrIp: "0.0.0.0/0",
-                                          Description: "All ICMP"
-                                        }
-                                      ],
-                                      ToPort: -1
-                                    },
-                                    {
-                                      FromPort: -1,
-                                      IpProtocol: "icmpv6",
-                                      IpRanges: [
-                                        {
-                                          CidrIp: "0.0.0.0/0",
-                                          Description: "All ICMPV6"
-                                        }
-                                      ],
-                                      ToPort: -1
-                                    }
-                                  ]
-                                };
-                                ec2.authorizeSecurityGroupIngress(asgParams, function (err, data) {
-                                  if (err) {
-                                    console.log(err);
-                                    setDialogOpen(true);
-                                    setDialogTitle("启动实例失败");
-                                    setDialogDescription("修改安全组策略时发生错误，请再试一次或联系支持");
-                                    setIsLaunchingInstance(false);
-                                  } else {
-                                    console.log(data);
-                                    var userDataRaw = "#!/bin/bash\necho root:" + password + "|sudo chpasswd root\nsudo rm -rf /etc/ssh/sshd_config\nsudo tee /etc/ssh/sshd_config <<EOF\nClientAliveInterval 120\nSubsystem       sftp    /usr/lib/openssh/sftp-server\nX11Forwarding yes\nPrintMotd no\nChallengeResponseAuthentication no\nPasswordAuthentication yes\nPermitRootLogin yes\nUsePAM yes\nAcceptEnv LANG LC_*\nEOF\nsudo systemctl restart sshd\n"
-                                    var userData = btoa(userDataRaw)
-                                    var instanceParams = {
-                                      ImageId: imageId,
-                                      InstanceType: type,
-                                      KeyName: keyName,
-                                      MinCount: 1,
-                                      MaxCount: 1,
-                                      SecurityGroupIds: [
-                                        groupId
-                                      ],
-                                      UserData: userData
-                                    };
-                                    ec2.runInstances(instanceParams, function (err, data) {
-                                      if (err) {
-                                        console.log(err);
-                                        setDialogOpen(true);
-                                        setDialogTitle("启动实例失败");
-                                        setDialogDescription("启动实例时发生错误，请再试一次或联系支持");
-                                        setIsLaunchingInstance(false);
-                                      } else {
-                                        console.log(data);
-                                        console.log({
-                                          instanceId: data.Instances[0].InstanceId
-                                        });
-                                        setDialogOpen(true);
-                                        setDialogTitle("启动实例成功");
-                                        setDialogDescription("您的新实例id为" + data.Instances[0].InstanceId + "，请30秒后通过查询实例详细信息获得公网ip，在此期间您可以开启另一个实例或进行其他操作");
-                                        setIsLaunchingInstance(false);
-                                        setInstances([]);
-                                      }
-                                    });
-                                  }
-                                });
-                              }
-                            });
                           }
                         });
-                      }
-                    });
+                    }
                   }
                 }}>执行</Button>
               </FormControl>
@@ -437,36 +501,65 @@ function App() {
                     setIsGettingQuota(false);
                   }
                   else {
-                    AWS.config = new AWS.Config();
-                    AWS.config.update(
-                      {
-                        accessKeyId: fixedAki,
-                        secretAccessKey: fixedSaki,
-                        region: gqRegion
-                      }
-                    );
-                    var servicequotas = new AWS.ServiceQuotas();
-                    var params = {
-                      QuotaCode: 'L-1216C47A',
-                      ServiceCode: 'ec2'
-                    };
-                    servicequotas.getServiceQuota(params, function (err, data) {
-                      if (err) {
-                        console.error(err);
-                        setDialogOpen(true);
-                        setDialogTitle("查看配额失败");
-                        setDialogDescription("查看配额时发生错误，请再试一次或联系支持");
-                        setIsGettingQuota(false);
-                      }
-                      else {
-                        console.log(data);
-                        setDialogOpen(true);
-                        setDialogTitle("查看配额成功");
-                        setDialogDescription("您在该区域的配额为" + String(data.Quota.Value));
-                        setIsGettingQuota(false);
-                        setIsGettingQuota(false);
-                      }
-                    });
+                    if (mode === 1) {
+                      AWS.config = new AWS.Config();
+                      AWS.config.update(
+                        {
+                          accessKeyId: fixedAki,
+                          secretAccessKey: fixedSaki,
+                          region: gqRegion
+                        }
+                      );
+                      var servicequotas = new AWS.ServiceQuotas();
+                      var params = {
+                        QuotaCode: 'L-1216C47A',
+                        ServiceCode: 'ec2'
+                      };
+                      servicequotas.getServiceQuota(params, function (err, data) {
+                        if (err) {
+                          setDialogOpen(true);
+                          setDialogTitle("查看配额失败");
+                          setDialogDescription("查看配额时发生错误，请再试一次或联系支持");
+                          setIsGettingQuota(false);
+                        }
+                        else {
+                          setDialogOpen(true);
+                          setDialogTitle("查看配额成功");
+                          setDialogDescription("您在该区域的配额为" + String(data.Quota.Value));
+                          setIsGettingQuota(false);
+                          setIsGettingQuota(false);
+                        }
+                      });
+                    }
+                    else if (mode === 2) {
+                      fetch(remote + '/aws-get-quota', {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                          aki: fixedAki,
+                          saki: fixedSaki,
+                          region: gqRegion,
+                        })
+                      })
+                        .then(async (response) => {
+                          var body = await response.json();
+                          if (response.ok) {
+                            setDialogOpen(true);
+                            setDialogTitle("查看配额成功");
+                            setDialogDescription("您在该区域的配额为" + String(body.quota));
+                            setIsGettingQuota(false);
+                            setIsGettingQuota(false);
+                          }
+                          else {
+                            setDialogOpen(true);
+                            setDialogTitle("查看配额失败");
+                            setDialogDescription("查看配额时发生错误，请再试一次或联系支持");
+                            setIsGettingQuota(false);
+                          }
+                        });
+                    }
                   }
                 }}>执行</Button>
               </FormControl>
@@ -512,40 +605,70 @@ function App() {
                     setIsCheckingInstances(false);
                   }
                   else {
-                    AWS.config = new AWS.Config();
-                    AWS.config.update(
-                      {
-                        accessKeyId: fixedAki,
-                        secretAccessKey: fixedSaki,
-                        region: ciRegion
-                      }
-                    );
-                    var ec2 = new AWS.EC2();
-                    var params = {}
-                    ec2.describeInstances(params, function (err, data) {
-                      if (err) {
-                        console.error(err);
-                        setDialogOpen(true);
-                        setDialogTitle("查看实例详细信息失败");
-                        setDialogDescription("查看实例详细信息时发生错误，请再试一次或联系支持");
-                        setIsCheckingInstances(false);
-                      }
-                      else {
-                        var processedInstances = []
-                        data.Reservations.forEach(reservation => {
-                          reservation.Instances.forEach(instance => {
-                            processedInstances.push({ id: instance.InstanceId, type: instance.InstanceType, ip: instance.PublicIpAddress, platform: instance.PlatformDetails })
+                    if (mode === 1) {
+                      AWS.config = new AWS.Config();
+                      AWS.config.update(
+                        {
+                          accessKeyId: fixedAki,
+                          secretAccessKey: fixedSaki,
+                          region: ciRegion
+                        }
+                      );
+                      var ec2 = new AWS.EC2();
+                      var params = {}
+                      ec2.describeInstances(params, function (err, data) {
+                        if (err) {
+                          setDialogOpen(true);
+                          setDialogTitle("查看实例详细信息失败");
+                          setDialogDescription("查看实例详细信息时发生错误，请再试一次或联系支持");
+                          setIsCheckingInstances(false);
+                        }
+                        else {
+                          var processedInstances = []
+                          data.Reservations.forEach(reservation => {
+                            reservation.Instances.forEach(instance => {
+                              processedInstances.push({ id: instance.InstanceId, type: instance.InstanceType, ip: instance.PublicIpAddress, platform: instance.PlatformDetails })
+                            })
                           })
+                          setInstances(processedInstances);
+                          setDialogOpen(true);
+                          setDialogTitle("查看实例详细信息成功");
+                          setDialogDescription("请在查看实例详细信息选项卡中查看您在该区域的实例信息");
+                          setIsCheckingInstances(false);
+                          setIsCheckedInstances(true);
+                        }
+                      });
+                    }
+                    else if (mode === 2) {
+                      fetch(remote + '/aws-check-instances', {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                          aki: fixedAki,
+                          saki: fixedSaki,
+                          region: ciRegion,
                         })
-                        console.log(data);
-                        setInstances(processedInstances);
-                        setDialogOpen(true);
-                        setDialogTitle("查看实例详细信息成功");
-                        setDialogDescription("请在查看实例详细信息选项卡中查看您在该区域的实例信息");
-                        setIsCheckingInstances(false);
-                        setIsCheckedInstances(true);
-                      }
-                    });
+                      })
+                        .then(async (response) => {
+                          var body = await response.json();
+                          if (response.ok) {
+                            setInstances(body.instances);
+                            setDialogOpen(true);
+                            setDialogTitle("查看实例详细信息成功");
+                            setDialogDescription("请在查看实例详细信息选项卡中查看您在该区域的实例信息");
+                            setIsCheckingInstances(false);
+                            setIsCheckedInstances(true);
+                          }
+                          else {
+                            setDialogOpen(true);
+                            setDialogTitle("查看实例详细信息失败");
+                            setDialogDescription("查看实例详细信息时发生错误，请再试一次或联系支持");
+                            setIsCheckingInstances(false);
+                          }
+                        });
+                    }
                   }
                 }}>执行</Button>
               </FormControl>
@@ -574,7 +697,7 @@ function App() {
                 </TableBody>
               </Table>
             </TableContainer>
-          ) : (<div />)}
+          ) : (<></>)}
         </AccordionDetails>
       </Accordion>
       <div>
