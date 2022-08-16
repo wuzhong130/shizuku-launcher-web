@@ -64,6 +64,8 @@ const AccordionDetails = styled(MuiAccordionDetails)(({ theme }) => ({
 }));
 
 function App() {
+  const defaultRemote = process.env.REACT_APP_DEFAULT_REMOTE_DOMAIN;
+
   const regions = ["us-east-2", "us-east-1", "us-west-1", "us-west-2", "af-south-1", "ap-east-1", "ap-southeast-3", "ap-south-1", "ap-northeast-3", "ap-northeast-2", "ap-southeast-1", "ap-southeast-2", "ap-northeast-1", "ca-central-1", "eu-central-1", "eu-west-1", "eu-west-2", "eu-south-1", "eu-west-3", "eu-north-1", "me-south-1", "sa-east-1"]
   const systems = ["Debian 10", "Debian 11", "Ubuntu 20.04", "Ubuntu 22.04", "Arch Linux"]
   const types = ["t2.micro", "t3.micro", "c5n.large", "t3a.micro", "t2.2xlarge", "t2.xlarge", "t2.large", "t2.medium", "t2.nano", "t3.nano", "t3.small", "t3.medium", "t3.large", "t3.xlarge", "t3.2xlarge", "t3a.nano", "t3a.small", "t3a.medium", "t3a.large", "t3a.xlarge", "t3a.2xlarge", "c5n.xlarge", "c5n.4xlarge", "c5n.2xlarge", "c5.xlarge", "c5.2xlarge", "c5.4xlarge", "c5a.large", "c5a.xlarge", "c5a.2xlarge"]
@@ -74,7 +76,7 @@ function App() {
   const [fixedAki, setFixedAki] = useState("");
   const [fixedSaki, setFixedSaki] = useState("");
   const [mode, setMode] = useState(1);
-  const [remote, setRemote] = useState("https://shizuku-launcher-backend.hidandelion.com");
+  const [remote, setRemote] = useState(defaultRemote);
   const [liRegion, setLiRegion] = useState("");
   const [system, setSystem] = useState("");
   const [type, setType] = useState("");
@@ -155,7 +157,7 @@ function App() {
               <TextField label="远端地址（可选）" variant="outlined" size="small" onChange={(e) => {
                 setRemote(e.target.value);
                 if (remote === "") {
-                  setRemote("https://shizuku-launcher-backend.hidandelion.com")
+                  setRemote(defaultRemote)
                 }
               }} />
             </FormControl>
